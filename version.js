@@ -1,0 +1,1 @@
+const version={command:"node js/application",date:"21 AUG 2019",name:"Fresh App",number:"0.0.1"};module.exports=version;
