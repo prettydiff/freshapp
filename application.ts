@@ -250,6 +250,10 @@ interface readFile {
                         {
                             code: `${version.command} server 8080`,
                             defined: "If a numeric argument is supplied the web server starts on the port specified and web sockets on the following port."
+                        },
+                        {
+                            code: `${version.command} server browser`,
+                            defined: "Launches the default location in the user's default web browser."
                         }
                     ]
                 },
@@ -2279,7 +2283,15 @@ interface readFile {
                 return;
             }
             let timeStore:number = 0;
-            const port:number = (isNaN(Number(process.argv[0])) === true)
+            const browser:boolean = (function node_apps_server_browser():boolean {
+                    const index:number = process.argv.indexOf("browser");
+                    if (index > -1) {
+                        process.argv.splice(index, 1);
+                        return true;
+                    }
+                    return false;
+                }()),
+                port:number = (isNaN(Number(process.argv[0])) === true)
                     ? version.port
                     : Number(process.argv[0]),
                 keyword:string = (process.platform === "darwin")
@@ -2397,6 +2409,116 @@ interface readFile {
                     }
                     return false;
                 },
+                start = function node_apps_server_start() {
+                    console.log(`HTTP server is up at: ${text.bold + text.green}http://localhost:${port + text.none}`);
+                    console.log(`${text.green}Starting web server and file system watcher!${text.none}`);
+                    if (browser === true) {
+                        console.log("Launching default web browser...");
+                    }
+                    node.fs.watch(projectPath, {
+                        recursive: true
+                    }, function node_apps_server_watch(type:"rename"|"change", filename:string|null):void {
+                        if (filename === null || ignore(filename) === true) {
+                            return;
+                        }
+                        const extension:string = (function node_apps_server_watch_extension():string {
+                                const list = filename.split(".");
+                                return list[list.length - 1];
+                            }()),
+                            time = function node_apps_server_watch_time(message:string):number {
+                                const date:Date = new Date(),
+                                    dateArray:string[] = [];
+                                let hours:string = String(date.getHours()),
+                                    minutes:string = String(date.getMinutes()),
+                                    seconds:string = String(date.getSeconds()),
+                                    milliSeconds:string = String(date.getMilliseconds());
+                                if (hours.length === 1) {
+                                    hours = `0${hours}`;
+                                }
+                                if (minutes.length === 1) {
+                                    minutes = `0${minutes}`;
+                                }
+                                if (seconds.length === 1) {
+                                    seconds = `0${seconds}`;
+                                }
+                                if (milliSeconds.length < 3) {
+                                    do {
+                                        milliSeconds = `0${milliSeconds}`;
+                                    } while (milliSeconds.length < 3);
+                                }
+                                dateArray.push(hours);
+                                dateArray.push(minutes);
+                                dateArray.push(seconds);
+                                dateArray.push(milliSeconds);
+                                console.log(`[${text.cyan + dateArray.join(":") + text.none}] ${message}`);
+                                timeStore = date.valueOf();
+                                return timeStore;
+                            };
+                        if (extension === "ts" && timeStore < Date.now() - 1000) {
+                            let start:number,
+                                compile:number,
+                                duration = function node_apps_server_watch_duration(length:number):void {
+                                    let hours:number = 0,
+                                        minutes:number = 0,
+                                        seconds:number = 0,
+                                        list:string[] = [];
+                                    if (length > 3600000) {
+                                        hours = Math.floor(length / 3600000);
+                                        length = length - (hours * 3600000);
+                                    }
+                                    list.push(hours.toString());
+                                    if (list[0].length < 2) {
+                                        list[0] = `0${list[0]}`;
+                                    }
+                                    if (length > 60000) {
+                                        minutes = Math.floor(length / 60000);
+                                        length = length - (minutes * 60000);
+                                    }
+                                    list.push(minutes.toString());
+                                    if (list[1].length < 2) {
+                                        list[1] = `0${list[1]}`;
+                                    }
+                                    if (length > 1000) {
+                                        seconds = Math.floor(length / 1000);
+                                        length = length - (seconds * 1000);
+                                    }
+                                    list.push(seconds.toString());
+                                    if (list[2].length < 2) {
+                                        list[2] = `0${list[2]}`;
+                                    }
+                                    list.push(length.toString());
+                                    if (list[3].length < 3) {
+                                        do {
+                                            list[3] = `0${list[3]}`;
+                                        } while (list[3].length < 3);
+                                    }
+                                    console.log(`[${text.bold + text.purple + list.join(":") + text.none}] Total compile time.\u0007`);
+                                };
+                            console.log("");
+                            start = time(`Compiling for ${text.green + filename + text.none}`);
+                            node.child(`${version.command} build incremental`, {
+                                cwd: projectPath
+                            }, function node_apps_server_watch_child(err:Error, stdout:string, stderr:string):void {
+                                if (err !== null) {
+                                    apps.error([err.toString()]);
+                                    return;
+                                }
+                                if (stderr !== "") {
+                                    apps.error([stderr]);
+                                    return;
+                                }
+                                compile = time("TypeScript Compiled") - start;
+                                duration(compile);
+                                ws.broadcast("reload");
+                                return;
+                            });
+                        } else if (extension === "css" || extension === "xhtml") {
+                            ws.broadcast("reload");
+                        }
+                    });
+                    server.on("error", serverError);
+                    server.listen(port);
+                },
                 socket = require("ws"),
                 ws = new socket.Server({port: port + 1});
             if (process.cwd() !== projectPath) {
@@ -2409,122 +2531,21 @@ interface readFile {
                     }
                 });
             };
-            node.child(`${keyword} http://localhost:${port}/`, {cwd: cwd}, function node_apps_server_create_stat_browser(errs:nodeError, stdout:string, stdError:string|Buffer):void {
-                if (errs !== null) {
-                    apps.error([errs.toString()]);
-                    return;
-                }
-                if (stdError !== "") {
-                    apps.error([stdError]);
-                    return;
-                }
-                console.log(`HTTP server is up at: ${text.bold + text.green}http://localhost:${port + text.none}`);
-                console.log(`${text.green}Starting web server and file system watcher!${text.none}`);
-                console.log("Launching default web browser...");
-                node.fs.watch(projectPath, {
-                    recursive: true
-                }, function node_apps_server_watch(type:"rename"|"change", filename:string|null):void {
-                    if (filename === null || ignore(filename) === true) {
+            if (browser === true) {
+                node.child(`${keyword} http://localhost:${port}/`, {cwd: cwd}, function node_apps_server_create_stat_browser(errs:nodeError, stdout:string, stdError:string|Buffer):void {
+                    if (errs !== null) {
+                        apps.error([errs.toString()]);
                         return;
                     }
-                    const extension:string = (function node_apps_server_watch_extension():string {
-                            const list = filename.split(".");
-                            return list[list.length - 1];
-                        }()),
-                        time = function node_apps_server_watch_time(message:string):number {
-                            const date:Date = new Date(),
-                                dateArray:string[] = [];
-                            let hours:string = String(date.getHours()),
-                                minutes:string = String(date.getMinutes()),
-                                seconds:string = String(date.getSeconds()),
-                                milliSeconds:string = String(date.getMilliseconds());
-                            if (hours.length === 1) {
-                                hours = `0${hours}`;
-                            }
-                            if (minutes.length === 1) {
-                                minutes = `0${minutes}`;
-                            }
-                            if (seconds.length === 1) {
-                                seconds = `0${seconds}`;
-                            }
-                            if (milliSeconds.length < 3) {
-                                do {
-                                    milliSeconds = `0${milliSeconds}`;
-                                } while (milliSeconds.length < 3);
-                            }
-                            dateArray.push(hours);
-                            dateArray.push(minutes);
-                            dateArray.push(seconds);
-                            dateArray.push(milliSeconds);
-                            console.log(`[${text.cyan + dateArray.join(":") + text.none}] ${message}`);
-                            timeStore = date.valueOf();
-                            return timeStore;
-                        };
-                    if (extension === "ts" && timeStore < Date.now() - 1000) {
-                        let start:number,
-                            compile:number,
-                            duration = function node_apps_server_watch_duration(length:number):void {
-                                let hours:number = 0,
-                                    minutes:number = 0,
-                                    seconds:number = 0,
-                                    list:string[] = [];
-                                if (length > 3600000) {
-                                    hours = Math.floor(length / 3600000);
-                                    length = length - (hours * 3600000);
-                                }
-                                list.push(hours.toString());
-                                if (list[0].length < 2) {
-                                    list[0] = `0${list[0]}`;
-                                }
-                                if (length > 60000) {
-                                    minutes = Math.floor(length / 60000);
-                                    length = length - (minutes * 60000);
-                                }
-                                list.push(minutes.toString());
-                                if (list[1].length < 2) {
-                                    list[1] = `0${list[1]}`;
-                                }
-                                if (length > 1000) {
-                                    seconds = Math.floor(length / 1000);
-                                    length = length - (seconds * 1000);
-                                }
-                                list.push(seconds.toString());
-                                if (list[2].length < 2) {
-                                    list[2] = `0${list[2]}`;
-                                }
-                                list.push(length.toString());
-                                if (list[3].length < 3) {
-                                    do {
-                                        list[3] = `0${list[3]}`;
-                                    } while (list[3].length < 3);
-                                }
-                                console.log(`[${text.bold + text.purple + list.join(":") + text.none}] Total compile time.\u0007`);
-                            };
-                        console.log("");
-                        start = time(`Compiling for ${text.green + filename + text.none}`);
-                        node.child(`${version.command} build incremental`, {
-                            cwd: projectPath
-                        }, function node_apps_server_watch_child(err:Error, stdout:string, stderr:string):void {
-                            if (err !== null) {
-                                apps.error([err.toString()]);
-                                return;
-                            }
-                            if (stderr !== "") {
-                                apps.error([stderr]);
-                                return;
-                            }
-                            compile = time("TypeScript Compiled") - start;
-                            duration(compile);
-                            ws.broadcast("reload");
-                            return;
-                        });
-                    } else if (extension === "css" || extension === "xhtml") {
-                        ws.broadcast("reload");
+                    if (stdError !== "") {
+                        apps.error([stdError]);
+                        return;
                     }
+                    start();
                 });
-                server.on("error", serverError);
-                server.listen(port);
-            });
+            } else {
+                start();
+            }
         };
         // simulates running the various commands of this services.ts file
         apps.simulation = function node_apps_simulation(callback:Function):void {

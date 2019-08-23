@@ -5,17 +5,18 @@ A general Node.js application primer with helpful utilities.
 It can be a headache to start a new Node.js project and application architecture that makes heavy use of command line instructions. This project is a ready to go application that solves this problem.
 
 ## Features
+* Command driven
+* File system utilities for reading directory trees recursively or removing them
+* Better error handling and messaging
+* Exclusion lists supported
+* Verbose output supported with the *verbose* option
+* Built-in test automation for commands and utilities
 * Only 5 dependencies:
    - ESLint (external dependency, a code error checker)
    - TypeScript (external dependency, a language compiler)
    - @types/node (internal dependency, additional data type definitions for TypeScript)
    - ws (internal dependency, web sockets for Node used with the *server* command)
    - async-limiter (sub-dependency of ws)
-* File system utilities for reading directory trees recursively or removing them
-* Better error handling and messaging
-* Exclusion lists supported
-* Verbose output supported with the *verbose* option
-* Command driven
 
 
 ## Set Up
