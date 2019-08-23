@@ -25,7 +25,9 @@ npm install typescript -g
 npm install eslint -g
 git clone https://github.com/prettydiff/freshapp.git
 cd freshapp
+tsc
 npm install
+node js/application build
 ```
 
 This setup installs the two external dependencies: ESLint and TypeScript as well as a local dependency that helps TypeScript compile the project.
