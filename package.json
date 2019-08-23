@@ -29,5 +29,5 @@
         "start": "node js/application build",
         "test": "node js/application test"
     },
-    "version": "1.0.0"
+    "version": "0.0.1"
 }
