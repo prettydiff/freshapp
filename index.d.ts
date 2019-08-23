@@ -36,10 +36,10 @@ interface nodeFileProps {
     mtime: number;
 }
 interface nodeLists {
-    emptyline: boolean;
+    empty_line: boolean;
     heading: string;
     obj: any;
-    property: "eachkey" | string;
+    property: "each" | string;
     total: boolean;
 }
 interface readDirectory {
@@ -61,4 +61,5 @@ interface version {
     date: string;
     name: string;
     number: string;
+    port: number;
 }

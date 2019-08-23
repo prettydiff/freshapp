@@ -29,6 +29,15 @@ npm install
 
 This setup installs the two external dependencies: ESLint and TypeScript as well as a local dependency that helps TypeScript compile the project.
 
+## Configuration
+Configuration data is stored in the version.json file.
+
+* **command** *string, manual* - The command that executes the application, which is `node ` and the path to your JavaScript application file, by default `js/application`.
+* **date** *string, dynamic* - This value is in format *dd MMM yyyy* and it is dynamically generated from the modify date of the package.json file.
+* **name** *string, manual* - This is the proper name of the application.
+* **number** *string, dynamic* - This value is gathered from the version property of the package.json file.
+* **port** *number, manual* - The default port number the application uses when running a service.  The `server` command requires two ports, one for HTTP and a second for Web Sockets, where the second port is always one number greater than the service port.
+
 ## Add a new utility
 In the applications.ts file simply assign a function to a named property on the apps object, example:
 `apps.myCustomTool = function () {};`
@@ -48,4 +57,4 @@ Add the functionality as described in the prior step.  Then simply add documenta
 1. Open the *test/simulations.ts* file and add a new test to the array of tests.  Read the documentation at the top of the file for test criteria.
 
 ## HTTP Service
-The application comes with a *server* command that launches an HTTP service. By default the application only display's the service's local file system from the project root. To instead show HTML web pages simply create an HTML file and reassign the *localpath* variable to a relative path for your HTML file.
+The application comes with a *server* command that launches an HTTP service. By default the application only display's the service's local file system from the project root. To instead show HTML web pages simply create an HTML file and reassign the *localPath* variable to a relative path for your HTML file.
