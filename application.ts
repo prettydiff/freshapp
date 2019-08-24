@@ -2278,10 +2278,6 @@ interface readFile {
         };
         // runs services: http, web sockets, and file system watch.  Allows rapid testing with automated rebuilds
         apps.server = function node_apps_server():void {
-            if (process.argv[0] !== undefined && isNaN(Number(process.argv[0])) === true) {
-                apps.error([`Specified port, ${text.angry + process.argv[0] + text.none}, is not a number.`]);
-                return;
-            }
             let timeStore:number = 0;
             const browser:boolean = (function node_apps_server_browser():boolean {
                     const index:number = process.argv.indexOf("browser");
@@ -2410,6 +2406,16 @@ interface readFile {
                     return false;
                 },
                 start = function node_apps_server_start() {
+                    if (process.cwd() !== projectPath) {
+                        process.chdir(projectPath);
+                    }
+                    ws.broadcast = function node_apps_server_broadcast(data:string):void {
+                        ws.clients.forEach(function node_apps_server_broadcast_clients(client):void {
+                            if (client.readyState === socket.OPEN) {
+                                client.send(data);
+                            }
+                        });
+                    };
                     console.log(`HTTP server is up at: ${text.bold + text.green}http://localhost:${port + text.none}`);
                     console.log(`${text.green}Starting web server and file system watcher!${text.none}`);
                     if (browser === true) {
@@ -2521,16 +2527,10 @@ interface readFile {
                 },
                 socket = require("ws"),
                 ws = new socket.Server({port: port + 1});
-            if (process.cwd() !== projectPath) {
-                process.chdir(projectPath);
+            if (process.argv[0] !== undefined && isNaN(Number(process.argv[0])) === true) {
+                apps.error([`Specified port, ${text.angry + process.argv[0] + text.none}, is not a number.`]);
+                return;
             }
-            ws.broadcast = function node_apps_server_broadcast(data:string):void {
-                ws.clients.forEach(function node_apps_server_broadcast_clients(client):void {
-                    if (client.readyState === socket.OPEN) {
-                        client.send(data);
-                    }
-                });
-            };
             if (browser === true) {
                 node.child(`${keyword} http://localhost:${port}/`, {cwd: cwd}, function node_apps_server_create_stat_browser(errs:nodeError, stdout:string, stdError:string|Buffer):void {
                     if (errs !== null) {
